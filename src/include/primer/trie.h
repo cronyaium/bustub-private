@@ -125,12 +125,23 @@ class Trie {
   template <class T>
   auto Put(std::string_view key, T value) const -> Trie;
 
+  template <class T>
+  void Construct(std::shared_ptr<TrieNode> &rt, const std::shared_ptr<TrieNode> &now, unsigned idx,
+                 const std::string_view &key, T &value) const;
+
+  // auto Exist(const std::shared_ptr<const TrieNode>& p, unsigned idx, const std::string_view& key) -> bool;
+  auto Rem(const std::shared_ptr<const TrieNode> &now, unsigned idx, const std::string_view &key) const
+      -> std::shared_ptr<const TrieNode>;
+
   // Remove the key from the trie. If the key does not exist, return the original trie.
   // Otherwise, returns the new trie.
   auto Remove(std::string_view key) const -> Trie;
 
   // Get the root of the trie, should only be used in test cases.
   auto GetRoot() const -> std::shared_ptr<const TrieNode> { return root_; }
+
+  template <class T>
+  void Printer(const std::shared_ptr<const TrieNode> &p, int spaces) const;
 };
 
 }  // namespace bustub

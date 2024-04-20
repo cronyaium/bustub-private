@@ -23,6 +23,8 @@
 .DS_store
 # Core files
 #core
+# backup files
+*.backup
 
 #==============================================================================#
 # Explicit files to ignore (only matches one).
