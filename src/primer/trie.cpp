@@ -63,7 +63,6 @@ void Trie::Construct(std::shared_ptr<TrieNode> &rt, const std::shared_ptr<TrieNo
       // 2.1.3 update
       root->children_[key[0]] = nxt;
       auto nxt_tnode = std::dynamic_pointer_cast<TrieNode>(nxt);
-      Construct(rt, nxt_tnode, 1, key, value);
     } else {
       // 2.2 not last key, then create TrieNode
       std::shared_ptr<TrieNode> nxt = nullptr;
