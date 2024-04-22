@@ -85,6 +85,7 @@ void WritePageGuard::Drop() {
   if (guard_.page_ != nullptr) {
     guard_.page_->WUnlatch();
   }
+	guard_.is_dirty_ = true;
   guard_.Drop();
 }
 
