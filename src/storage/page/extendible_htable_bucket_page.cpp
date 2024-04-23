@@ -70,6 +70,7 @@ void ExtendibleHTableBucketPage<K, V, KC>::RemoveAt(uint32_t bucket_idx) {
   for (uint32_t i = bucket_idx; i < size_; i++) {
     array_[i] = array_[i + 1];
   }
+  --size_;
 }
 
 template <typename K, typename V, typename KC>
@@ -101,11 +102,6 @@ auto ExtendibleHTableBucketPage<K, V, KC>::IsFull() const -> bool {
 template <typename K, typename V, typename KC>
 auto ExtendibleHTableBucketPage<K, V, KC>::IsEmpty() const -> bool {
   return size_ == 0;
-}
-
-template <typename K, typename V, typename KC>
-void ExtendibleHTableBucketPage<K, V, KC>::PrintBucket() const {
-  // TBD
 }
 
 template class ExtendibleHTableBucketPage<int, int, IntComparator>;

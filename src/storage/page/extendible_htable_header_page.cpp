@@ -12,15 +12,19 @@
 
 #include "storage/page/extendible_htable_header_page.h"
 
+#include "common/config.h"
 #include "common/exception.h"
 #include "common/macros.h"
 
 namespace bustub {
 
-void ExtendibleHTableHeaderPage::Init(uint32_t max_depth) { max_depth_ = max_depth; }
+void ExtendibleHTableHeaderPage::Init(uint32_t max_depth) {
+  max_depth_ = max_depth;
+  std::fill(std::begin(directory_page_ids_), std::end(directory_page_ids_), INVALID_PAGE_ID);
+}
 
 auto ExtendibleHTableHeaderPage::HashToDirectoryIndex(uint32_t hash) const -> uint32_t {
-  return std::hash<uint32_t>{}(hash);
+  return (hash >> 1) >> (31 - max_depth_);
 }
 
 auto ExtendibleHTableHeaderPage::GetDirectoryPageId(uint32_t directory_idx) const -> uint32_t {

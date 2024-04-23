@@ -24,12 +24,12 @@ namespace bustub {
 void ExtendibleHTableDirectoryPage::Init(uint32_t max_depth) {
   max_depth_ = max_depth;
   global_depth_ = 0;
-  memset(local_depths_, 0, sizeof(local_depths_));
-  memset(bucket_page_ids_, INVALID_PAGE_ID, sizeof(bucket_page_ids_));
+  std::fill(std::begin(local_depths_), std::end(local_depths_), 0);
+  std::fill(std::begin(bucket_page_ids_), std::end(bucket_page_ids_), INVALID_PAGE_ID);
 }
 
 auto ExtendibleHTableDirectoryPage::HashToBucketIndex(uint32_t hash) const -> uint32_t {
-  return std::hash<uint32_t>{}(hash);
+  return hash & GetGlobalDepthMask();
 }
 
 auto ExtendibleHTableDirectoryPage::GetBucketPageId(uint32_t bucket_idx) const -> page_id_t {
@@ -44,7 +44,7 @@ void ExtendibleHTableDirectoryPage::SetBucketPageId(uint32_t bucket_idx, page_id
 
 auto ExtendibleHTableDirectoryPage::GetSplitImageIndex(uint32_t bucket_idx) const -> uint32_t {
   BUSTUB_ASSERT(bucket_idx < HTABLE_DIRECTORY_ARRAY_SIZE, "bucket_idx out of range");
-  return bucket_idx ^ (1 << GetLocalDepth(bucket_idx));
+  return bucket_idx ^ (1 << (global_depth_ - 1));
 }
 
 auto ExtendibleHTableDirectoryPage::GetGlobalDepthMask() const -> uint32_t { return (1 << global_depth_) - 1; }
@@ -62,18 +62,32 @@ auto ExtendibleHTableDirectoryPage::GetLocalDepthMask(uint32_t bucket_idx) const
 
 auto ExtendibleHTableDirectoryPage::GetMaxDepth() const -> uint32_t { return max_depth_; }
 
-void ExtendibleHTableDirectoryPage::IncrGlobalDepth() { ++global_depth_; }
+void ExtendibleHTableDirectoryPage::IncrGlobalDepth() {
+  if (global_depth_ < max_depth_) {
+    for (uint32_t i = 0; i < Size(); i++) {
+      uint32_t j = i | (1 << global_depth_);
+      local_depths_[j] = local_depths_[i];
+      bucket_page_ids_[j] = bucket_page_ids_[i];
+    }
+    ++global_depth_;
+  }
+}
 
-void ExtendibleHTableDirectoryPage::DecrGlobalDepth() { --global_depth_; }
+void ExtendibleHTableDirectoryPage::DecrGlobalDepth() {
+  if (global_depth_ > 0) {
+    --global_depth_;
+  }
+}
 
 auto ExtendibleHTableDirectoryPage::CanShrink() -> bool {
   if (global_depth_ == 0) {
     return false;
   }
+  // Only shrink the directory if the local depth of every bucket is strictly less than the global depth of the
+  // directory.
   bool ret = true;
-  for (auto i = 0; i < (1 << (global_depth_ - 1)); i++) {
-    auto j = i | (1 << (global_depth_ - 1));
-    if (GetBucketPageId(i) != GetBucketPageId(j)) {
+  for (auto i = 0; i < (1 << (global_depth_)); i++) {
+    if (local_depths_[i] >= global_depth_) {
       ret = false;
       break;
     }
@@ -98,14 +112,6 @@ void ExtendibleHTableDirectoryPage::IncrLocalDepth(uint32_t bucket_idx) {
 void ExtendibleHTableDirectoryPage::DecrLocalDepth(uint32_t bucket_idx) {
   BUSTUB_ASSERT(bucket_idx < HTABLE_DIRECTORY_ARRAY_SIZE, "bucket_idx out of range");
   --local_depths_[bucket_idx];
-}
-
-void ExtendibleHTableDirectoryPage::VerifyIntegrity() const {
-  // TBD
-}
-
-void ExtendibleHTableDirectoryPage::PrintDirectory() const {
-  // TBD
 }
 
 }  // namespace bustub
