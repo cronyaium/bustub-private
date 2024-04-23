@@ -93,11 +93,12 @@ TEST(ExtendibleHTableTest, InsertTest2) {
 // NOLINTNEXTLINE
 TEST(ExtendibleHTableTest, RemoveTest1) {
   auto disk_mgr = std::make_unique<DiskManagerUnlimitedMemory>();
-  auto bpm = std::make_unique<BufferPoolManager>(50, disk_mgr.get());
+  auto bpm = std::make_unique<BufferPoolManager>(3, disk_mgr.get());
 
-  DiskExtendibleHashTable<int, int, IntComparator> ht("blah", bpm.get(), IntComparator(), HashFunction<int>(), 2, 3, 2);
+  DiskExtendibleHashTable<int, int, IntComparator> ht("blah", bpm.get(), IntComparator(), HashFunction<int>(), 9, 9,
+                                                      511);
 
-  int num_keys = 5;
+  int num_keys = 10000;
 
   // insert some values
   for (int i = 0; i < num_keys; i++) {
@@ -131,6 +132,7 @@ TEST(ExtendibleHTableTest, RemoveTest1) {
   }
 
   ht.VerifyIntegrity();
+  // ht.PrintHT();
 
   // remove the keys we inserted
   for (int i = 0; i < num_keys; i++) {
@@ -139,6 +141,7 @@ TEST(ExtendibleHTableTest, RemoveTest1) {
     std::vector<int> res;
     ht.GetValue(i, &res);
     ASSERT_EQ(0, res.size());
+    // ht.PrintHT();
   }
 
   ht.VerifyIntegrity();
@@ -153,6 +156,22 @@ TEST(ExtendibleHTableTest, RemoveTest1) {
     ASSERT_EQ(0, res.size());
   }
 
+  ht.VerifyIntegrity();
+}
+// NOLINTNEXTLINE
+TEST(ExtendibleHTableTest, RemoveTest2) {
+  auto disk_mgr = std::make_unique<DiskManagerUnlimitedMemory>();
+  auto bpm = std::make_unique<BufferPoolManager>(50, disk_mgr.get());
+
+  DiskExtendibleHashTable<int, int, IntComparator> ht("blah", bpm.get(), IntComparator(), HashFunction<int>(), 1, 2, 2);
+
+  ht.Insert(4, 4);
+  ht.Insert(5, 5);
+  ht.Insert(6, 6);
+  ht.Insert(14, 14);
+  ht.Remove(5);
+  ht.Remove(14);
+  ht.Remove(4);
   ht.VerifyIntegrity();
 }
 
