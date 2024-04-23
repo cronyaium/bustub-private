@@ -83,7 +83,7 @@ class BasicPageGuard {
    */
   auto UpgradeWrite() -> WritePageGuard;
 
-	auto IsPageValid() const -> bool { return page_ != nullptr; }
+  auto IsPageValid() const -> bool { return page_ != nullptr; }
 
   auto PageId() -> page_id_t { return page_->GetPageId(); }
 
@@ -159,7 +159,7 @@ class ReadPageGuard {
    */
   ~ReadPageGuard();
 
-	auto IsPageValid() const -> bool { return guard_.IsPageValid(); }
+  auto IsPageValid() const -> bool { return guard_.IsPageValid(); }
 
   auto PageId() -> page_id_t { return guard_.PageId(); }
 
@@ -221,7 +221,7 @@ class WritePageGuard {
    */
   ~WritePageGuard();
 
-	auto IsPageValid() const -> bool { return guard_.IsPageValid(); }
+  auto IsPageValid() const -> bool { return guard_.IsPageValid(); }
 
   auto PageId() -> page_id_t { return guard_.PageId(); }
 
