@@ -17,6 +17,7 @@
 
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
+#include "execution/plans/abstract_plan.h"
 #include "execution/plans/insert_plan.h"
 #include "storage/table/tuple.h"
 
@@ -57,6 +58,10 @@ class InsertExecutor : public AbstractExecutor {
  private:
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
+
+	std::unique_ptr<AbstractExecutor> child_executor_;
+
+  bool is_done_{false};
 };
 
 }  // namespace bustub
