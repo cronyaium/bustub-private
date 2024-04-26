@@ -19,8 +19,47 @@
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/hash_join_plan.h"
 #include "storage/table/tuple.h"
+#include "common/util/hash_util.h"
 
 namespace bustub {
+
+/** HJKey represents a key in an hash-join operation */
+struct HJKey {
+  /** The key_ values */
+  std::vector<Value> key_;
+
+  /**
+   * Compares two HJKey keys for equality.
+   * @param other the other HJKey key to be compared with
+   * @return `true` if both HJKey keys have equivalent group-by expressions, `false` otherwise
+   */
+  auto operator==(const HJKey &other) const -> bool {
+    for (uint32_t i = 0; i < other.key_.size(); i++) {
+      if (key_[i].CompareEquals(other.key_[i]) != CmpBool::CmpTrue) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+/** HJValue represents a value for each of the running hash-join */
+struct HJValue {
+  /** The tuple values */
+  std::vector<Tuple> value_;
+};
+
+struct HJKeyHash {
+  std::size_t operator()(const HJKey &hj_key) const {
+    std::size_t curr_hash = 0;
+    for (const auto &key : hj_key.key_) {
+      if (!key.IsNull()) {
+        curr_hash = HashUtil::CombineHashes(curr_hash, HashUtil::HashValue(&key));
+      }
+    }
+    return curr_hash;
+  }
+};
 
 /**
  * HashJoinExecutor executes a nested-loop JOIN on two tables.
@@ -54,6 +93,35 @@ class HashJoinExecutor : public AbstractExecutor {
  private:
   /** The HashJoin plan node to be executed. */
   const HashJoinPlanNode *plan_;
+
+  std::unique_ptr<AbstractExecutor> left_child_;
+
+  std::unique_ptr<AbstractExecutor> right_child_;
+
+  std::vector<Tuple> result_{};
+
+  decltype(result_.begin()) result_iter_{result_.begin()};
+
+  std::unordered_map<HJKey, HJValue, HJKeyHash> hash_{};
+
+  /** @return The tuple as an LeftHJKey */
+  auto MakeLeftHJKey(const Tuple *tuple) -> HJKey {
+    std::vector<Value> keys;
+    for (const auto &expr : plan_->LeftJoinKeyExpressions()) {
+      keys.emplace_back(expr->Evaluate(tuple, left_child_->GetOutputSchema()));
+    }
+    return {keys};
+  }
+
+  /** @return The tuple as an RightHJKey */
+  auto MakeRightHJKey(const Tuple *tuple) -> HJKey {
+    std::vector<Value> keys;
+    for (const auto &expr : plan_->RightJoinKeyExpressions()) {
+      keys.emplace_back(expr->Evaluate(tuple, right_child_->GetOutputSchema()));
+    }
+    return {keys};
+  }
+
 };
 
 }  // namespace bustub
