@@ -52,5 +52,11 @@ class SortExecutor : public AbstractExecutor {
  private:
   /** The sort plan node to be executed */
   const SortPlanNode *plan_;
+
+  std::unique_ptr<AbstractExecutor> child_executor_;
+  
+  std::vector<std::pair<Tuple, RID>> result_{};
+
+  decltype(result_.begin()) result_iter_ = result_.begin();
 };
 }  // namespace bustub
