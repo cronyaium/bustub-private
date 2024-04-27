@@ -21,16 +21,13 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
   // TODO(student): implement NestedLoopJoin -> HashJoin optimizer rule
   // Note for 2023 Fall: You should support join keys of any number of conjunction of equi-condistions:
   // E.g. <column expr> = <column expr> AND <column expr> = <column expr> AND ...
-  if (plan->GetType() == PlanType::Projection) {
-    const auto &prj_plan = dynamic_cast<const ProjectionPlanNode &>(*plan);
-    auto child_plan = prj_plan.GetChildPlan();
-    if (child_plan->GetType() == PlanType::NestedLoopJoin) {
-      auto hj_plan = OptimizeNLJAsHashJoin(child_plan);
-      return std::make_shared<ProjectionPlanNode>(prj_plan.output_schema_, prj_plan.expressions_, std::move(hj_plan));
-    }
+  std::vector<AbstractPlanNodeRef> children;
+  for (const auto &child : plan->GetChildren()) {
+    children.emplace_back(OptimizeNLJAsHashJoin(child));
   }
-  if (plan->GetType() == PlanType::NestedLoopJoin) {
-    const auto &nlj_plan = dynamic_cast<const NestedLoopJoinPlanNode &>(*plan);
+  auto optimized_plan = plan->CloneWithChildren(std::move(children));
+  if (optimized_plan->GetType() == PlanType::NestedLoopJoin) {
+    const auto &nlj_plan = dynamic_cast<const NestedLoopJoinPlanNode &>(*optimized_plan);
     auto left_plan = nlj_plan.GetLeftPlan();
     if (left_plan->GetType() == PlanType::NestedLoopJoin) {
       left_plan = OptimizeNLJAsHashJoin(left_plan);
@@ -73,7 +70,7 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
 
     return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, std::move(left_plan), std::move(right_plan), std::move(left_key_expressions), std::move(right_key_expressions), nlj_plan.GetJoinType());
   }
-  return plan;
+  return optimized_plan;
 }
 
 }  // namespace bustub
