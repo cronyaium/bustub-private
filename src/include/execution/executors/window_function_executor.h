@@ -17,6 +17,7 @@
 
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
+#include "execution/executors/aggregation_executor.h"
 #include "execution/plans/window_plan.h"
 #include "storage/table/tuple.h"
 
@@ -90,5 +91,21 @@ class WindowFunctionExecutor : public AbstractExecutor {
 
   /** The child executor from which tuples are obtained */
   std::unique_ptr<AbstractExecutor> child_executor_;
+
+  std::vector<Tuple> result_{};
+
+  decltype(result_.begin()) result_iter_ = result_.begin();
+
+  std::unordered_map<AggregateKey, Value> ht_{};
+
+  /** @return The tuple as an AggregateKey */
+  auto MakeAggregateKey(const Tuple *tuple, const std::vector<AbstractExpressionRef>&partition_by) -> AggregateKey {
+    std::vector<Value> keys;
+    for (const auto &expr : partition_by) {
+      keys.emplace_back(expr->Evaluate(tuple, child_executor_->GetOutputSchema()));
+    }
+    return {keys};
+  }
+
 };
 }  // namespace bustub
