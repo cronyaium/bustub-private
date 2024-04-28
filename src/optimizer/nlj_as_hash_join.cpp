@@ -39,8 +39,10 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
     std::vector<AbstractExpressionRef> left_key_expressions;
     std::vector<AbstractExpressionRef> right_key_expressions;
 
-    std::function<void(AbstractExpressionRef, std::vector<AbstractExpressionRef>&, std::vector<AbstractExpressionRef>&)>
-    dfs = [&](AbstractExpressionRef expr, std::vector<AbstractExpressionRef> &left, std::vector<AbstractExpressionRef> &right) -> void {
+    std::function<void(AbstractExpressionRef, std::vector<AbstractExpressionRef> &,
+                       std::vector<AbstractExpressionRef> &)>
+        dfs = [&](const AbstractExpressionRef &expr, std::vector<AbstractExpressionRef> &left,
+                  std::vector<AbstractExpressionRef> &right) -> void {
       auto comp_expr = dynamic_cast<ComparisonExpression *>(expr.get());
       if (comp_expr != nullptr) {
         auto ch = comp_expr->GetChildAt(0);
@@ -51,7 +53,7 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
         } else {
           right.push_back(ch);
         }
-        
+
         ch = comp_expr->GetChildAt(1);
         column = dynamic_cast<ColumnValueExpression *>(ch.get());
         BUSTUB_ASSERT(column != nullptr, "dynamic_cast to ColumnValueExpression * failed");
@@ -62,13 +64,15 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
         }
         return;
       }
-      for (auto& subexpr : expr->GetChildren()) {
+      for (auto &subexpr : expr->GetChildren()) {
         dfs(subexpr, left, right);
       }
     };
     dfs(nlj_plan.Predicate(), left_key_expressions, right_key_expressions);
 
-    return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, std::move(left_plan), std::move(right_plan), std::move(left_key_expressions), std::move(right_key_expressions), nlj_plan.GetJoinType());
+    return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, std::move(left_plan), std::move(right_plan),
+                                              std::move(left_key_expressions), std::move(right_key_expressions),
+                                              nlj_plan.GetJoinType());
   }
   return optimized_plan;
 }

@@ -45,9 +45,9 @@ class IndexScanExecutor : public AbstractExecutor {
   /** The index scan plan node to be executed. */
   const IndexScanPlanNode *plan_;
 
-  IndexInfo* index_info_;
+  IndexInfo *index_info_;
 
-  std::vector<RID>ret_{};
+  std::vector<RID> ret_{};
 
   decltype(ret_.begin()) iter_{ret_.begin()};
 };

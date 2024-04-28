@@ -16,30 +16,29 @@ IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanP
     : AbstractExecutor(exec_ctx), plan_(plan), index_info_(exec_ctx_->GetCatalog()->GetIndex(plan_->GetIndexOid())) {}
 
 void IndexScanExecutor::Init() {
-    auto htable_ = dynamic_cast<HashTableIndexForTwoIntegerColumn *>(index_info_->index_.get());
-    std::vector<Value>values{plan_->pred_key_->val_};
-    auto key_schema = Schema({Column("index", values[0].GetTypeId())});
-    auto key = Tuple(std::move(values), &key_schema);
-    htable_->ScanKey(key, &ret_, exec_ctx_->GetTransaction());
-    iter_ = ret_.begin();
+  auto htable = dynamic_cast<HashTableIndexForTwoIntegerColumn *>(index_info_->index_.get());
+  std::vector<Value> values{plan_->pred_key_->val_};
+  auto key_schema = Schema({Column("index", values[0].GetTypeId())});
+  auto key = Tuple(std::move(values), &key_schema);
+  htable->ScanKey(key, &ret_, exec_ctx_->GetTransaction());
+  iter_ = ret_.begin();
 }
 
-auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
-    
-    while (iter_ != ret_.end()) {
-        *rid = *iter_;
-        *tuple = exec_ctx_->GetCatalog()->GetTable(plan_->table_oid_)->table_->GetTuple(*rid).second;
-        auto filter = plan_->filter_predicate_;
-		if (filter) {
-			auto value = filter->Evaluate(tuple, this->GetOutputSchema());
-			if (!value.GetAs<bool>()) {
-				continue;
-			}
-		}
-        ++iter_;
-        return true;
+auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
+  while (iter_ != ret_.end()) {
+    *rid = *iter_;
+    *tuple = exec_ctx_->GetCatalog()->GetTable(plan_->table_oid_)->table_->GetTuple(*rid).second;
+    auto filter = plan_->filter_predicate_;
+    if (filter) {
+      auto value = filter->Evaluate(tuple, this->GetOutputSchema());
+      if (!value.GetAs<bool>()) {
+        continue;
+      }
     }
-    return false;
+    ++iter_;
+    return true;
+  }
+  return false;
 }
 
 }  // namespace bustub

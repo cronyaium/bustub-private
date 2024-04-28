@@ -15,11 +15,11 @@
 #include <memory>
 #include <utility>
 
+#include "common/util/hash_util.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/hash_join_plan.h"
 #include "storage/table/tuple.h"
-#include "common/util/hash_util.h"
 
 namespace bustub {
 
@@ -50,7 +50,7 @@ struct HJValue {
 };
 
 struct HJKeyHash {
-  std::size_t operator()(const HJKey &hj_key) const {
+  auto operator()(const HJKey &hj_key) const -> std::size_t {
     std::size_t curr_hash = 0;
     for (const auto &key : hj_key.key_) {
       if (!key.IsNull()) {
@@ -121,7 +121,6 @@ class HashJoinExecutor : public AbstractExecutor {
     }
     return {keys};
   }
-
 };
 
 }  // namespace bustub

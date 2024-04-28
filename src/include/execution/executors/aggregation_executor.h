@@ -104,7 +104,7 @@ class SimpleAggregationHashTable {
           }
           break;
         case AggregationType::MaxAggregate:
-        if (!input.aggregates_[i].IsNull()) {
+          if (!input.aggregates_[i].IsNull()) {
             if (result->aggregates_[i].IsNull()) {
               result->aggregates_[i] = input.aggregates_[i];
             } else {

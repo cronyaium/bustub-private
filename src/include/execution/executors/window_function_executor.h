@@ -99,13 +99,13 @@ class WindowFunctionExecutor : public AbstractExecutor {
   std::unordered_map<AggregateKey, Value> ht_{};
 
   /** @return The tuple as an AggregateKey */
-  auto MakeAggregateKey(const Tuple *tuple, const std::vector<AbstractExpressionRef>&partition_by) -> AggregateKey {
-    std::vector<Value> keys;
-    for (const auto &expr : partition_by) {
-      keys.emplace_back(expr->Evaluate(tuple, child_executor_->GetOutputSchema()));
+  auto MakeAggregateKey(const Tuple *tuple, const std::vector<AbstractExpressionRef> &partition_by) -> AggregateKey {
+    std::vector<Value> keys(partition_by.size());
+    for (decltype(partition_by.size()) i = 0; i < partition_by.size(); i++) {
+      const auto &expr = partition_by[i];
+      keys[i] = expr->Evaluate(tuple, child_executor_->GetOutputSchema());
     }
     return {keys};
   }
-
 };
 }  // namespace bustub

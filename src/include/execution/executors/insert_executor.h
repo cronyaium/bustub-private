@@ -59,7 +59,7 @@ class InsertExecutor : public AbstractExecutor {
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
 
-	std::unique_ptr<AbstractExecutor> child_executor_;
+  std::unique_ptr<AbstractExecutor> child_executor_;
 
   bool is_done_{false};
 };
