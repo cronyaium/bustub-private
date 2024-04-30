@@ -11,8 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/executors/seq_scan_executor.h"
-#include "execution/execution_common.h"
 #include "concurrency/transaction_manager.h"
+#include "execution/execution_common.h"
 
 namespace bustub {
 
@@ -28,7 +28,7 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     return false;
   }
   while (!iter_.IsEnd()) {
-    auto meta = iter_.GetTuple().first;    
+    auto meta = iter_.GetTuple().first;
     *rid = iter_.GetRID();
     auto base_tuple = iter_.GetTuple().second;
     auto txn = exec_ctx_->GetTransaction();
@@ -43,8 +43,8 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
       ++iter_;
       return true;
     }
-    
-    std::vector<UndoLog>undo_logs;
+
+    std::vector<UndoLog> undo_logs;
     auto undo_link = exec_ctx_->GetTransactionManager()->GetUndoLink(*rid);
     bool flag = false;
     while (undo_link.has_value() && undo_link->IsValid()) {
@@ -60,7 +60,7 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
       ++iter_;
       continue;
     }
-    auto ret = ReconstructTuple(&GetOutputSchema(), base_tuple, meta, std::move(undo_logs));
+    auto ret = ReconstructTuple(&GetOutputSchema(), base_tuple, meta, undo_logs);
     if (ret.has_value()) {
       *tuple = *ret;
       ++iter_;
