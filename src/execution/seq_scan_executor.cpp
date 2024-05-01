@@ -33,6 +33,7 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     auto base_tuple = iter_.GetTuple().second;
     auto txn = exec_ctx_->GetTransaction();
     auto txn_ts = txn->GetReadTs();
+    auto filter = plan_->filter_predicate_;
 
     if (meta.ts_ == txn->GetTransactionId() || meta.ts_ <= txn_ts) {
       if (meta.is_deleted_) {
@@ -41,6 +42,12 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
       }
       *tuple = base_tuple;
       ++iter_;
+      if (filter) {
+        auto value = filter->Evaluate(tuple, this->GetOutputSchema());
+        if (!value.GetAs<bool>()) {
+          continue;
+        }
+      }
       return true;
     }
 
@@ -64,22 +71,15 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     if (ret.has_value()) {
       *tuple = *ret;
       ++iter_;
+      if (filter) {
+        auto value = filter->Evaluate(tuple, this->GetOutputSchema());
+        if (!value.GetAs<bool>()) {
+          continue;
+        }
+      }
       return true;
     }
     ++iter_;
-
-    /*
-    auto filter = plan_->filter_predicate_;
-    if (filter) {
-      auto value = filter->Evaluate(tuple, this->GetOutputSchema());
-      if (!value.GetAs<bool>()) {
-        ++iter_;
-        continue;
-      }
-    }
-    ++iter_;
-    return true;
-    */
   }
   // iter_.IsEnd() == true
   return false;
