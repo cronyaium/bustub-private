@@ -104,6 +104,69 @@ void TransactionManager::Abort(Transaction *txn) {
   running_txns_.RemoveTxn(txn->read_ts_);
 }
 
-void TransactionManager::GarbageCollection() { UNIMPLEMENTED("not implemented"); }
+void TransactionManager::GarbageCollection() {
+  auto wm = running_txns_.watermark_;
+
+  std::unordered_map<txn_id_t, std::vector<int>> invisible;
+  for (const auto &table_name : catalog_->GetTableNames()) {
+    auto table_iter = catalog_->GetTable(table_name)->table_->MakeIterator();
+    while (!table_iter.IsEnd()) {
+      auto [meta, tuple] = table_iter.GetTuple();
+      auto rid = table_iter.GetRID();
+      auto undo_link = GetUndoLink(rid);
+
+      // 找到最大的 ts<wm 的log
+      bool flag = meta.ts_ <= wm;
+      if (!flag) {
+        while (undo_link.has_value() && undo_link->IsValid()) {
+          auto undo_log = GetUndoLogOptional(undo_link.value());
+          if (!undo_log.has_value()) {
+            break;
+          }
+          undo_link = std::make_optional<UndoLink>(undo_log->prev_version_);
+          if (undo_log->ts_ < wm) {
+            flag = true;
+            break;
+          }
+        }
+      }
+      if (flag) {
+        while (undo_link.has_value() && undo_link->IsValid()) {
+          auto undo_log = GetUndoLogOptional(undo_link.value());
+          if (!undo_log.has_value()) {
+            break;
+          }
+          auto [txn_id, log_id] = undo_link.value();
+          invisible[txn_id].emplace_back(log_id);
+          undo_link = std::make_optional<UndoLink>(undo_log->prev_version_);
+        }
+      }
+      ++table_iter;
+    }
+  }
+
+  std::unique_lock<std::shared_mutex> lck(txn_map_mutex_);
+  for (const auto &[txn_id, inv_vec] : invisible) {
+    if (txn_map_.find(txn_id) != txn_map_.end()) {
+      auto txn = txn_map_.at(txn_id);
+      if ((txn->GetTransactionState() == TransactionState::COMMITTED ||
+           txn->GetTransactionState() == TransactionState::ABORTED) &&
+          txn->GetUndoLogNum() == inv_vec.size()) {
+        txn_map_.erase(txn_id);
+      }
+    }
+  }
+  std::vector<txn_id_t> removes;
+  for (const auto &[txn_id, txn] : txn_map_) {
+    if ((txn->GetTransactionState() == TransactionState::COMMITTED ||
+         txn->GetTransactionState() == TransactionState::ABORTED) &&
+        txn->GetUndoLogNum() == 0) {
+      removes.emplace_back(txn_id);
+    }
+  }
+  for (const auto &txn_id : removes) {
+    txn_map_.erase(txn_id);
+  }
+}
 
 }  // namespace bustub
