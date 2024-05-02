@@ -62,12 +62,9 @@ auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
       // If the tuple is newly-inserted, no undo log needs to be created
       if (u_meta.ts_ != exec_ctx_->GetTransaction()->GetTransactionTempTs()) {
         std::vector<bool> modified_fields(child_executor_->GetOutputSchema().GetColumnCount(), true);
-        UndoLog undo_log = {
-            false,
-            std::move(modified_fields),
-            u_tuple,
-            u_meta.ts_,
-        };
+        auto head = exec_ctx_->GetTransactionManager()->GetUndoLink(u_rid);
+        UndoLog undo_log = {false, std::move(modified_fields), u_tuple, u_meta.ts_,
+                            head.has_value() ? head.value() : UndoLink()};
         auto new_head = exec_ctx_->GetTransaction()->AppendUndoLog(undo_log);
         exec_ctx_->GetTransactionManager()->UpdateUndoLink(u_rid, new_head);
       }

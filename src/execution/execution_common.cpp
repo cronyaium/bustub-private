@@ -75,24 +75,27 @@ void TxnMgrDbg(const std::string &info, TransactionManager *txn_mgr, const Table
     auto undo_link = txn_mgr->GetUndoLink(rid);
 
     while (undo_link.has_value() && undo_link->IsValid()) {
-      auto undo_log = txn_mgr->GetUndoLog(undo_link.value());
+      auto undo_log = txn_mgr->GetUndoLogOptional(undo_link.value());
+      if (!undo_log.has_value()) {
+        break;
+      }
       // undo_log.is_deleted_ ? "<Del>" : undo_log.tuple_.ToString(&table_info->schema_)
-      if (undo_log.is_deleted_) {
+      if (undo_log->is_deleted_) {
         fmt::println(stderr, "txn{}@{} {} ts={}", undo_link->prev_txn_ ^ mask, undo_link->prev_log_idx_, "<Del>",
-                     undo_log.ts_);
+                     undo_log->ts_);
       } else {
         std::vector<uint32_t> attrs;
-        for (uint32_t i = 0; i < undo_log.modified_fields_.size(); i++) {
-          if (undo_log.modified_fields_[i]) {
+        for (uint32_t i = 0; i < undo_log->modified_fields_.size(); i++) {
+          if (undo_log->modified_fields_[i]) {
             attrs.emplace_back(i);
           }
         }
         auto schema = Schema::CopySchema(&table_info->schema_, attrs);
         fmt::println(stderr, "txn{}@{} {} ts={}", undo_link->prev_txn_ ^ mask, undo_link->prev_log_idx_,
-                     undo_log.tuple_.ToString(&schema), undo_log.ts_);
+                     undo_log->tuple_.ToString(&schema), undo_log->ts_);
       }
 
-      undo_link = std::make_optional<UndoLink>(undo_log.prev_version_);
+      undo_link = std::make_optional<UndoLink>(undo_log->prev_version_);
     }
     ++table_iter;
   }
